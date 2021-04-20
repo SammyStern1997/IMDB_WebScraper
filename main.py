@@ -8,7 +8,11 @@ import requests
 import json
 import sqlite3
 import time
-import plotly.graph_objects as go 
+import plotly.express as px
+import plotly.graph_objects as go
+
+import pandas as pd
+import numpy as np
 
 BASE_URL = 'https://www.rottentomatoes.com/top'
 COURSES_PATH = '/Desktop/507/final_project'
@@ -16,6 +20,10 @@ CACHE_FILE_NAME = 'fp_cache.json'
 
 CACHE_DICT = {}
 headers = {'User-Agent': 'UMSI 507 Course Project - Python Web Scraping','From': 'sternsams@umich.edu','Course-Info': 'https://www.si.umich.edu/programs/courses/507'}
+
+ratings_dict = {
+    1: "G", 2: "PG", 3: "PG-13", 4: "R", 5: "No Rating"
+}
 
 class Movie:
     '''a movie
@@ -154,7 +162,7 @@ def get_movie_instance(movie_url):
     Parameters
     ----------
     site_url: string
-        The URL for a movie page in rottentomatoess.com
+        The URL for a movie page in rottentomatoes.com
     
     Returns
     -------
@@ -186,7 +194,7 @@ def get_movie_instance(movie_url):
         junk3 = junk2[1].split('"')
         tomatometer = int(junk3[0])   
     except:
-        tomatometer = 'no tomatometer'
+        tomatometer = 0
         
     try:
         junk = soup.find_all(class_="scoreboard")[0]
@@ -195,7 +203,7 @@ def get_movie_instance(movie_url):
         junk3 = junk2[1].split('"')
         audience_score = int(junk3[0])    
     except:
-        audience_score = 'no audience score'
+        audience_score = 0
 
     return Movie(name, rating, tomatometer, audience_score)
 
@@ -267,9 +275,6 @@ def create_ratings_table(conn):
     cur.execute(create_ratings)
     conn.commit()
 
-    ratings_dict = {
-        1: "G", 2: "PG", 3: "PG-13", 4: "R", 5: "No Rating"
-    }
 
     for key, val in ratings_dict.items():
         ratings_values = f'''
@@ -290,34 +295,132 @@ def add_movie(conn, movie):
     cur.execute(insert_movie)
     conn.commit()
 
+def plot_user_input(vis, movie_amount, movie_rating):
+    #HISTOGRAM
+    if vis == 1:
+        query = f'''
+            SELECT movies.tomatometer, movies.audience_score
+            FROM movies JOIN ratings on movies.rating_id=ratings.id
+            WHERE ratings.rating_name == "{movie_rating}"
+            LIMIT {int(movie_amount)};
+        '''
+        cur.execute(query)
+        tomato_scores = []
+        audience_scores = []
+        for row in cur:
+            tomato_scores.append(row[0])
+            audience_scores.append(row[1])
+
+        fig = px.histogram(x=tomato_scores, labels = {'x': "Tomatometer Scores (%)", 'y': 'Count'})
+        fig.show()
+        fig = px.histogram(x=audience_scores, labels = {'x': "Audience Scores (%)", 'y': 'Count'})
+        fig.show()
+
+        fig = go.Figure()
+        fig.add_trace(go.Histogram(x=tomato_scores, name = 'Tomatometer Scores (%)'))
+        fig.add_trace(go.Histogram(x=audience_scores, name = 'Audience Scores (%)'))
+
+        # The two histograms are drawn on top of another
+        fig.update_layout(barmode='stack')
+        fig.show()
+
+
+    #Bar Chart
+    if vis == 2:
+        query = f'''
+            SELECT movies.name, movies.tomatometer, movies.audience_score
+            FROM movies JOIN ratings on movies.rating_id=ratings.id
+            WHERE ratings.rating_name == "{movie_rating}"
+            LIMIT {int(movie_amount)};
+        '''
+        cur.execute(query)
+        scores = {'Title': [], 'Tomatometer (%)': [], 'Audience Score (%)': []}
+        for row in cur:
+            scores['Title'].append(row[0])
+            scores['Tomatometer (%)'].append(row[1])
+            scores['Audience Score (%)'].append(row[2])
+
+        df = pd.DataFrame(data=scores)
+        fig = px.bar(df, x = 'Title', y = 'Tomatometer (%)') 
+        fig.show()
+        fig = px.bar(df, x = 'Title', y = 'Audience Score (%)') 
+        fig.show()
+        fig = go.Figure(data=[
+            go.Bar(name='Tomatometer', x=df['Title'], y=df['Tomatometer (%)']),
+            go.Bar(name='Audience Score', x=df['Title'], y=df['Audience Score (%)'])
+        ])
+        # Change the bar mode
+        fig.update_layout(barmode='group')
+        fig.show()
+
+
 
 if __name__ == "__main__":
     CACHE_DICT = load_cache(CACHE_FILE_NAME)
     genre_urls = build_genre_url_dict(BASE_URL)
 
-    user_genre = 'comedy'
-
+    # user_genre = 'comedy'
+    i = 1
+    print(f"Top 100 Movie Lists")
+    print("-----------------------------------------")
     for key, val in genre_urls.items():
-        if user_genre in key:
-            genre_link = val
+        print(f"{i}: {key.title()}")
+        i += 1
+    print("-----------------------------------------")
+
+    genre_choice = input("Please input the number of the Top 100 list you are interested in: ")
+
+    keys_list = list(genre_urls.keys())
+    value_list = list(genre_urls.values())
+    # j = 0
+    # for key, val in genre_urls.items():
+    #     if j + 1 == int(genre_choice):
+    #         genre_link = val
+    genre_link = value_list[int(genre_choice)-1]
+    print(genre_link)
+
     movie_instances = get_movies_for_genre(genre_link)
 
     conn = sqlite3.connect("movies_rt.sqlite")
     create_movie_table(conn)
     create_ratings_table(conn)
     cur = conn.cursor()
-
+    print(f"length of movie instances: {len(movie_instances)}")
+    i=0
     for movie in movie_instances:
+        # print(f"{i}:  {movie.name} {movie.tomatometer}")
+        # i+=1
         add_movie(conn, movie)
 
-    insert_movie = f'''
-        SELECT * 
-        FROM movies JOIN ratings on movies.rating_id=ratings.id
-        LIMIT 5;
-    '''
-    cur.execute(insert_movie)
-    for row in cur:
-        print(row)
+    while True:
+        vis = input('Which visualization would you like to see for these movies? Please 1 for‘histogram’ or 2 for bar chart: ')
+        vis = int(vis)
+        if vis == 1 or vis == 2:
+            break
+        else:
+            print("Please enter a valid number.\n")
+            continue
+    
+    while True:
+        movie_amount = input("How many movies would you like to see in your visualization?: ")
+
+        if movie_amount.isnumeric() and (int(movie_amount) > 0 and int(movie_amount)< 101):
+            movie_amount = int(movie_amount)
+            break
+        else:
+            print("Please enter a valid number.\n")
+            continue
+
+    while True:
+        movie_rating = input("Which movie rating would you like to filter by?: ")
+        if movie_rating in ratings_dict.values():
+            break
+        else:
+            print("Please enter a valid rating.\n")
+            continue
+
+    plot_user_input(vis, movie_amount, movie_rating)
+
 
 
 
