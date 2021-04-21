@@ -377,7 +377,7 @@ if __name__ == "__main__":
     #     if j + 1 == int(genre_choice):
     #         genre_link = val
     genre_link = value_list[int(genre_choice)-1]
-    print(genre_link)
+    # print(genre_link)
 
     movie_instances = get_movies_for_genre(genre_link)
 
@@ -385,15 +385,12 @@ if __name__ == "__main__":
     create_movie_table(conn)
     create_ratings_table(conn)
     cur = conn.cursor()
-    print(f"length of movie instances: {len(movie_instances)}")
     i=0
     for movie in movie_instances:
-        # print(f"{i}:  {movie.name} {movie.tomatometer}")
-        # i+=1
         add_movie(conn, movie)
 
     while True:
-        vis = input('Which visualization would you like to see for these movies? Please 1 for‘histogram’ or 2 for bar chart: ')
+        vis = input('Which visualization would you like to see for these movies? Please 1 for histogram or 2 for bar chart: ')
         vis = int(vis)
         if vis == 1 or vis == 2:
             break
@@ -402,7 +399,7 @@ if __name__ == "__main__":
             continue
     
     while True:
-        movie_amount = input("How many movies would you like to see in your visualization?: ")
+        movie_amount = input("How many movies would you like to see in your visualization? (1-100): ")
 
         if movie_amount.isnumeric() and (int(movie_amount) > 0 and int(movie_amount)< 101):
             movie_amount = int(movie_amount)
@@ -412,7 +409,7 @@ if __name__ == "__main__":
             continue
 
     while True:
-        movie_rating = input("Which movie rating would you like to filter by?: ")
+        movie_rating = input("Which movie rating would you like to filter by? (OPTIONS: G, PG, PG-13, R): ")
         if movie_rating in ratings_dict.values():
             break
         else:
@@ -421,17 +418,4 @@ if __name__ == "__main__":
 
     plot_user_input(vis, movie_amount, movie_rating)
 
-
-
-
-
-
-
     conn.close()
-    # for movie in movie_instances:
-    #     add_movie(conn, movie)
-    
-
-
-
-
