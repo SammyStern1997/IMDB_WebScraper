@@ -1,4 +1,4 @@
-# IMDB_WebScraper
+# RottenTomatoes_Webscraper
 Final Project for SI 507: Intermediate Programming 
 
 # Program Interaction
