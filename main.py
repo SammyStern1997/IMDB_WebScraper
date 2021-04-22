@@ -236,6 +236,16 @@ def get_movies_for_genre(genre_url):
     return movie_instances
 
 def create_movie_table(conn):
+    '''Creates movie table within the database
+    
+    Parameters
+    ---------
+    conn: SQLite connection
+    
+    Returns
+    -------
+    nothing
+    '''
     cur = conn.cursor()
 
     drop_movies = '''
@@ -259,6 +269,17 @@ def create_movie_table(conn):
     conn.commit()
 
 def create_ratings_table(conn):
+    '''Creates ratings table within the database
+    
+    Parameters
+    ---------
+    conn: SQLite connection
+    
+    Returns
+    -------
+    nothing
+    '''
+    
     cur = conn.cursor()
     drop_ratings = '''
         DROP TABLE IF EXISTS "ratings";
@@ -286,6 +307,18 @@ def create_ratings_table(conn):
     conn.commit()
 
 def add_movie(conn, movie):
+    '''adds movie instance to 'movie' table within the database.
+    
+    Parameters
+    ---------
+    conn: SQLite connection
+    movie: Movie instance
+    
+    Returns
+    -------
+    nothing
+    '''
+
     cur = conn.cursor()
 
     insert_movie = f'''
@@ -296,6 +329,19 @@ def add_movie(conn, movie):
     conn.commit()
 
 def plot_user_input(vis, movie_amount, movie_rating):
+    '''Plots the plotly visualizations depending on the user input
+    
+    Parameters
+    ---------
+    vis: number corresponding to the type of visualization
+    movie_amount: Amount to limit the query results
+    movie_rating: Movie ratings to filter the query results 
+    
+    Returns
+    -------
+    nothing
+    '''
+
     #HISTOGRAM
     if vis == 1:
         query = f'''
@@ -359,7 +405,6 @@ if __name__ == "__main__":
     CACHE_DICT = load_cache(CACHE_FILE_NAME)
     genre_urls = build_genre_url_dict(BASE_URL)
 
-    # user_genre = 'comedy'
     i = 1
     print(f"Top 100 Movie Lists")
     print("-----------------------------------------")
@@ -372,12 +417,8 @@ if __name__ == "__main__":
 
     keys_list = list(genre_urls.keys())
     value_list = list(genre_urls.values())
-    # j = 0
-    # for key, val in genre_urls.items():
-    #     if j + 1 == int(genre_choice):
-    #         genre_link = val
+
     genre_link = value_list[int(genre_choice)-1]
-    # print(genre_link)
 
     movie_instances = get_movies_for_genre(genre_link)
 
